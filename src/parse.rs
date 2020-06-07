@@ -9,7 +9,37 @@ use nom::{
 };
 use std::str::from_utf8;
 
-// TODO: there is an ABNF in rfc2449, which I havn't noticed.
+pub fn single_line(input: &[u8]) -> IResult<&[u8], String> {
+    let parser = tuple((
+        map(not_line_ending, |data: &[u8]| {
+            String::from_utf8(data.to_vec()).unwrap()
+        }),
+        line_ending,
+    ));
+
+    let (remaining, (parsed, _)) = parser(input)?;
+
+    Ok((remaining, parsed))
+}
+
+pub fn number(input: &[u8]) -> IResult<&[u8], u32> {
+    let parser = map_res(map_res(digit1, from_utf8), str::parse::<u32>);
+
+    let (remaining, number) = parser(input)?;
+
+    Ok((remaining, number))
+}
+
+// ABNF from RFC2449.
+
+// POP3 commands:
+
+// command = keyword *(SP param) CRLF
+//            ; 255 octets maximum
+
+// keyword = 3*4VCHAR
+
+// param = 1*VCHAR
 
 pub fn command(input: &[u8]) -> IResult<&[u8], Command> {
     let parser = tuple((
@@ -148,23 +178,81 @@ pub fn quit(input: &[u8]) -> IResult<&[u8], Command> {
     value(Command::Quit, tag_no_case("QUIT"))(input)
 }
 
-pub fn single_line(input: &[u8]) -> IResult<&[u8], String> {
-    let parser = tuple((
-        map(not_line_ending, |data: &[u8]| {
-            String::from_utf8(data.to_vec()).unwrap()
-        }),
-        line_ending,
-    ));
+// POP3 responses:
 
-    let (remaining, (parsed, _)) = parser(input)?;
+// response = greeting / single-line / capa-resp / multi-line
 
-    Ok((remaining, parsed))
+// ---
+
+// greeting = "+OK" [resp-code] *gchar [timestamp] *gchar CRLF
+//             ; 512 octets maximum
+
+// resp-code = "[" resp-level *("/" resp-level) "]"
+
+// resp-level = 1*rchar
+
+// timestamp = "<" *VCHAR ">"
+//              ; MUST conform to RFC-822 msg-id
+
+// --
+
+// single-line = status [SP text] CRLF
+//                ; 512 octets maximum
+
+// status = "+OK" / "-ERR"
+
+// text = *schar / resp-code *CHAR
+
+// --
+
+// capa-resp = single-line *capability "." CRLF
+
+// capability = capa-tag *(SP param) CRLF
+//               ; 512 octets maximum
+
+// capa-tag = 1*cchar
+
+// --
+
+// multi-line = single-line *dot-stuffed "." CRLF
+
+// dot-stuffed = *CHAR CRLF
+//                ; must be dot-stuffed
+
+// --
+
+// cchar = %x21-2D / %x2F-7F
+//          ; printable ASCII, excluding "."
+pub fn is_cchar(b: u8) -> bool {
+    match b {
+        0x21..=0x2D | 0x2F..=0x7F => true,
+        _ => false,
+    }
 }
 
-pub fn number(input: &[u8]) -> IResult<&[u8], u32> {
-    let parser = map_res(map_res(digit1, from_utf8), str::parse::<u32>);
+// gchar = %x21-3B / %x3D-7F
+//          ;printable ASCII, excluding "<"
+pub fn is_gchar(b: u8) -> bool {
+    match b {
+        0x21..=0x3B | 0x3D..=0x7F => true,
+        _ => false,
+    }
+}
 
-    let (remaining, number) = parser(input)?;
+// rchar = %x21-2E / %x30-5C / %x5E-7F
+//          ;printable ASCII, excluding "/" and "]"
+pub fn is_rchar(b: u8) -> bool {
+    match b {
+        0x21..=0x2E | 0x30..=0x5C | 0x5E..=0x7F => true,
+        _ => false,
+    }
+}
 
-    Ok((remaining, number))
+// schar = %x21-5A / %x5C-7F
+//          ;printable ASCII, excluding "["
+pub fn is_schar(b: u8) -> bool {
+    match b {
+        0x21..=0x5A | 0x5C..=0x7F => true,
+        _ => false,
+    }
 }
