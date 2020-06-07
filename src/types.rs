@@ -55,8 +55,12 @@ pub enum Command {
         msg: Option<u32>,
     },
 
-    // Other
+    // RFC2449 (POP3 Extension Mechanism):
+    /// CAPA
     Capa,
+
+    // RFC2595 (Using TLS with IMAP, POP3 and ACAP):
+    /// STLS
     Stls,
     // TODO: Where is "AUTH\r\n" (without mechanism) defined?
     // rfc1939? no.

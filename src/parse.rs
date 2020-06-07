@@ -44,9 +44,10 @@ pub fn number(input: &[u8]) -> IResult<&[u8], u32> {
 pub fn command(input: &[u8]) -> IResult<&[u8], Command> {
     let parser = tuple((
         alt((
-            user, pass, apop, // AUTHORIZATION
+            user, pass, apop, stls, // AUTHORIZATION
+            capa, quit, // AUTHORIZATION + TRANSACTION
             stat, list, retr, dele, noop, rset, top, uidl, // TRANSACTION
-            capa, stls, auth_plain, auth, quit, // OTHER
+            auth_plain, auth, // not sorted yet
         )),
         line_ending,
     ));
