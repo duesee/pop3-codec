@@ -1,9 +1,9 @@
 use crate::types::Command;
 use nom::{
     branch::alt,
-    bytes::streaming::{tag, tag_no_case, take_while},
+    bytes::streaming::{tag, tag_no_case, take_while, take_while1},
     character::streaming::{digit1, line_ending, not_line_ending},
-    combinator::{map, map_res, opt, value},
+    combinator::{map, map_res, opt, recognize, value},
     sequence::tuple,
     IResult,
 };
@@ -47,7 +47,7 @@ pub fn command(input: &[u8]) -> IResult<&[u8], Command> {
             user, pass, apop, stls, // AUTHORIZATION
             capa, quit, // AUTHORIZATION + TRANSACTION
             stat, list, retr, dele, noop, rset, top, uidl, // TRANSACTION
-            auth_plain, auth, // not sorted yet
+            auth, // not sorted yet
         )),
         line_ending,
     ));
@@ -167,12 +167,72 @@ pub fn stls(input: &[u8]) -> IResult<&[u8], Command> {
     value(Command::Stls, tag_no_case("STLS"))(input)
 }
 
-pub fn auth_plain(input: &[u8]) -> IResult<&[u8], Command> {
-    value(Command::AuthPlain, tag_no_case("AUTH PLAIN"))(input)
+pub fn auth(input: &[u8]) -> IResult<&[u8], Command> {
+    let parser = alt((
+        map(
+            tuple((
+                tag_no_case(b"AUTH"),
+                tag(" "),
+                auth_type,
+                opt(map(
+                    tuple((
+                        tag(" "),
+                        alt((base64, map_res(tag("="), std::str::from_utf8))),
+                    )),
+                    |(_, maybe_ir)| maybe_ir,
+                )),
+            )),
+            |(_, _, mechanism, initial_response)| Command::Auth {
+                mechanism: mechanism.to_owned(),
+                initial_response: initial_response.map(|i| i.to_owned()),
+            },
+        ),
+        map(tag_no_case("AUTH"), |_| Command::AuthList),
+    ));
+
+    let (remaining, cmd) = parser(input)?;
+
+    Ok((remaining, cmd))
 }
 
-pub fn auth(input: &[u8]) -> IResult<&[u8], Command> {
-    value(Command::Auth, tag_no_case("AUTH"))(input)
+pub fn is_auth_char(i: u8) -> bool {
+    is_alpha(i) || is_digit(i) || i == b'-' || i == b'_'
+}
+
+pub fn auth_type(input: &[u8]) -> IResult<&[u8], &str> {
+    map_res(take_while1(is_auth_char), std::str::from_utf8)(input)
+}
+
+pub fn base64(input: &[u8]) -> IResult<&[u8], &str> {
+    let parser = map_res(
+        recognize(tuple((
+            take_while(is_base64_char),
+            opt(alt((tag("=="), tag("=")))),
+        ))),
+        from_utf8,
+    );
+
+    let (remaining, base64) = parser(input)?;
+
+    Ok((remaining, base64))
+}
+
+fn is_base64_char(i: u8) -> bool {
+    is_alpha(i) || is_digit(i) || i == b'+' || i == b'/'
+}
+
+pub fn is_alpha(i: u8) -> bool {
+    match i as char {
+        'a'..='z' | 'A'..='Z' => true,
+        _ => false,
+    }
+}
+
+pub fn is_digit(byte: u8) -> bool {
+    match byte {
+        b'0'..=b'9' => true,
+        _ => false,
+    }
 }
 
 pub fn quit(input: &[u8]) -> IResult<&[u8], Command> {

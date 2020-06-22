@@ -62,12 +62,16 @@ pub enum Command {
     // RFC2595 (Using TLS with IMAP, POP3 and ACAP):
     /// STLS
     Stls,
+    // RFC5034 (POP3 SASL Authentication Mechanism)
+    Auth {
+        mechanism: String,
+        initial_response: Option<String>,
+    },
     // TODO: Where is "AUTH\r\n" (without mechanism) defined?
     // rfc1939? no.
     // rfc1734? yes, but mechanism is required due to formal syntax and obsoleted.
     // rfc5034? yes, but mechanism is required due to formal syntax.
-    Auth,
-    AuthPlain,
+    AuthList,
 }
 
 impl Command {
@@ -87,8 +91,8 @@ impl Command {
             Command::Uidl { .. } => "UIDL",
             Command::Capa => "CAPA",
             Command::Stls => "STLS",
-            Command::AuthPlain => "AUTHPLAIN",
-            Command::Auth => "AUTH",
+            Command::Auth { .. } => "AUTH",
+            Command::AuthList => "AUTHLIST",
         }
     }
 
@@ -114,9 +118,16 @@ impl Command {
             },
             Command::Capa => b"CAPA\r\n".to_vec(),
             Command::Stls => b"STLS\r\n".to_vec(),
-
-            Command::Auth => b"AUTH\r\n".to_vec(),
-            Command::AuthPlain => unimplemented!(),
+            Command::Auth {
+                mechanism,
+                initial_response,
+            } => match initial_response {
+                Some(initial_response) => {
+                    format!("AUTH {} {}\r\n", mechanism, initial_response).into_bytes()
+                }
+                None => format!("AUTH {}\r\n", mechanism).into_bytes(),
+            },
+            Command::AuthList => b"AUTH\r\n".to_vec(),
         }
     }
 }
@@ -153,7 +164,22 @@ mod test {
         assert_eq!(Command::Uidl { msg: Some(1) }.serialize(), b"UIDL 1\r\n");
         assert_eq!(Command::Capa.serialize(), b"CAPA\r\n");
         assert_eq!(Command::Stls.serialize(), b"STLS\r\n");
-        assert_eq!(Command::Auth.serialize(), b"AUTH\r\n");
-        //assert_eq!(Command::AuthPlain.serialize(), b"\r\n");
+        assert_eq!(
+            Command::Auth {
+                mechanism: "PLAIN".into(),
+                initial_response: None
+            }
+            .serialize(),
+            b"AUTH PLAIN\r\n"
+        );
+        assert_eq!(
+            Command::Auth {
+                mechanism: "PLAIN".into(),
+                initial_response: Some("XXX".into())
+            }
+            .serialize(),
+            b"AUTH PLAIN XXX\r\n"
+        );
+        assert_eq!(Command::AuthList.serialize(), b"AUTH\r\n");
     }
 }
