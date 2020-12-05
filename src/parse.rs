@@ -30,16 +30,23 @@ pub fn number(input: &[u8]) -> IResult<&[u8], u32> {
     Ok((remaining, number))
 }
 
-// ABNF from RFC2449.
+// ABNF from RFC2449
 
-// POP3 commands:
+// ----- Generic -----
+
+// param = 1*VCHAR
+
+// VCHAR = <from ABNF core rules>
+
+// ----- Command -----
 
 // command = keyword *(SP param) CRLF
-//            ; 255 octets maximum
+//
+// Note: 255 octets maximum
 
 // keyword = 3*4VCHAR
 
-// param = 1*VCHAR
+// param = <from lib>
 
 pub fn command(input: &[u8]) -> IResult<&[u8], Command> {
     let parser = tuple((
@@ -239,69 +246,26 @@ pub fn quit(input: &[u8]) -> IResult<&[u8], Command> {
     value(Command::Quit, tag_no_case("QUIT"))(input)
 }
 
-// POP3 responses:
+// ----- # Response -----
 
-// response = greeting / single-line / capa-resp / multi-line
+// response = greeting /
+//            single-line /
+//            multi-line /
+//            capa-resp
 
-// ---
+// ----- ## Greeting -----
 
 // greeting = "+OK" [resp-code] *gchar [timestamp] *gchar CRLF
-//             ; 512 octets maximum
+//
+// Note: 512 octets maximum
 
 // resp-code = "[" resp-level *("/" resp-level) "]"
 
 // resp-level = 1*rchar
 
-// timestamp = "<" *VCHAR ">"
-//              ; MUST conform to RFC-822 msg-id
-
-// --
-
-// single-line = status [SP text] CRLF
-//                ; 512 octets maximum
-
-// status = "+OK" / "-ERR"
-
-// text = *schar / resp-code *CHAR
-
-// --
-
-// capa-resp = single-line *capability "." CRLF
-
-// capability = capa-tag *(SP param) CRLF
-//               ; 512 octets maximum
-
-// capa-tag = 1*cchar
-
-// --
-
-// multi-line = single-line *dot-stuffed "." CRLF
-
-// dot-stuffed = *CHAR CRLF
-//                ; must be dot-stuffed
-
-// --
-
-// cchar = %x21-2D / %x2F-7F
-//          ; printable ASCII, excluding "."
-pub fn is_cchar(b: u8) -> bool {
-    match b {
-        0x21..=0x2D | 0x2F..=0x7F => true,
-        _ => false,
-    }
-}
-
-// gchar = %x21-3B / %x3D-7F
-//          ;printable ASCII, excluding "<"
-pub fn is_gchar(b: u8) -> bool {
-    match b {
-        0x21..=0x3B | 0x3D..=0x7F => true,
-        _ => false,
-    }
-}
-
-// rchar = %x21-2E / %x30-5C / %x5E-7F
-//          ;printable ASCII, excluding "/" and "]"
+/// Printable ASCII, excluding "/" and "]"
+///
+/// rchar = %x21-2E / %x30-5C / %x5E-7F
 pub fn is_rchar(b: u8) -> bool {
     match b {
         0x21..=0x2E | 0x30..=0x5C | 0x5E..=0x7F => true,
@@ -309,11 +273,72 @@ pub fn is_rchar(b: u8) -> bool {
     }
 }
 
-// schar = %x21-5A / %x5C-7F
-//          ;printable ASCII, excluding "["
+/// Printable ASCII, excluding "<"
+///
+/// gchar = %x21-3B / %x3D-7F
+pub fn is_gchar(b: u8) -> bool {
+    match b {
+        0x21..=0x3B | 0x3D..=0x7F => true,
+        _ => false,
+    }
+}
+
+// timestamp = "<" *VCHAR ">"
+//
+// Note: MUST conform to RFC-822 msg-id
+
+// VCHAR = <from ABNF core rules>
+
+// ----- ## Single Line -----
+
+// single-line = status [SP text] CRLF
+//
+// Note: 512 octets maximum
+
+// status = "+OK" / "-ERR"
+
+// text = *schar / resp-code *CHAR
+
+/// Printable ASCII, excluding "["
+///
+/// schar = %x21-5A / %x5C-7F
 pub fn is_schar(b: u8) -> bool {
     match b {
         0x21..=0x5A | 0x5C..=0x7F => true,
+        _ => false,
+    }
+}
+
+// resp-code = <from response>
+
+// ----- ## Multi Line -----
+
+// multi-line = single-line *dot-stuffed "." CRLF
+
+// single-line = <from response>
+
+// dot-stuffed = *CHAR CRLF
+//
+// Note: must be dot-stuffed
+
+// CHAR = <from ABNF core rules>
+
+// ----- ## Capa Response -----
+
+// capa-resp = single-line *capability "." CRLF
+
+// capability = capa-tag *(SP param) CRLF
+//
+// Note: 512 octets maximum
+
+// capa-tag = 1*cchar
+
+/// Printable ASCII, excluding "."
+///
+/// cchar = %x21-2D / %x2F-7F
+pub fn is_cchar(b: u8) -> bool {
+    match b {
+        0x21..=0x2D | 0x2F..=0x7F => true,
         _ => false,
     }
 }
