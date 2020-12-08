@@ -1,7 +1,7 @@
 use crate::types::Command;
 use nom::{
     branch::alt,
-    bytes::streaming::{tag, tag_no_case, take_while, take_while1},
+    bytes::streaming::{tag, tag_no_case, take_until, take_while, take_while1},
     character::streaming::{digit1, line_ending, not_line_ending},
     combinator::{map, map_res, opt, recognize, value},
     sequence::tuple,
@@ -9,17 +9,18 @@ use nom::{
 };
 use std::str::from_utf8;
 
-pub fn single_line(input: &[u8]) -> IResult<&[u8], String> {
-    let parser = tuple((
-        map(not_line_ending, |data: &[u8]| {
-            String::from_utf8(data.to_vec()).unwrap()
-        }),
-        line_ending,
-    ));
+pub fn single_line(input: &[u8]) -> IResult<&[u8], &str> {
+    map_res(
+        recognize(tuple((take_until(b"\r\n".as_ref()), tag("\r\n")))),
+        from_utf8,
+    )(input)
+}
 
-    let (remaining, (parsed, _)) = parser(input)?;
-
-    Ok((remaining, parsed))
+pub fn multi_line(input: &[u8]) -> IResult<&[u8], &str> {
+    map_res(
+        recognize(tuple((take_until(b"\r\n.\r\n".as_ref()), tag("\r\n.\r\n")))),
+        from_utf8,
+    )(input)
 }
 
 pub fn number(input: &[u8]) -> IResult<&[u8], u32> {
@@ -340,5 +341,22 @@ pub fn is_cchar(b: u8) -> bool {
     match b {
         0x21..=0x2D | 0x2F..=0x7F => true,
         _ => false,
+    }
+}
+
+#[cfg(test)]
+mod test {
+    #[test]
+    fn test_single_line() {
+        let (rem, out) = super::single_line(b"+OK Hello!!!\r\n").unwrap();
+        assert!(rem.is_empty());
+        assert_eq!("+OK Hello!!!\r\n", out);
+    }
+
+    #[test]
+    fn test_multi_line() {
+        let (rem, out) = super::multi_line(b"+OK listing\r\nFoo\r\nBar\r\n.\r\n").unwrap();
+        assert!(rem.is_empty());
+        assert_eq!("+OK listing\r\nFoo\r\nBar\r\n.\r\n", out);
     }
 }
