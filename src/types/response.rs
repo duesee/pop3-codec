@@ -1,7 +1,10 @@
+#[cfg(feature = "serdex")]
+use serde::{Deserialize, Serialize};
 use std::fmt::Debug;
 
 // -- Greeting --
 
+#[cfg_attr(feature = "serdex", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Greeting {
     /// An empty vector is used for "no code"
@@ -10,6 +13,7 @@ pub struct Greeting {
     pub timestamp: Option<String>,
 }
 
+#[cfg_attr(feature = "serdex", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SingleLine {
     /// An empty vector is used for "no code"
@@ -17,6 +21,7 @@ pub struct SingleLine {
     pub comment: String,
 }
 
+#[cfg_attr(feature = "serdex", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct MultiLine<T>
 where
@@ -27,6 +32,7 @@ where
     pub body: Vec<T>,
 }
 
+#[cfg_attr(feature = "serdex", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Response<O, E>
 where
@@ -52,30 +58,35 @@ where
     }
 }
 
+#[cfg_attr(feature = "serdex", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DropListing {
     pub message_count: u32,
     pub maildrop_size: u32,
 }
 
+#[cfg_attr(feature = "serdex", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ScanListing {
     pub message_id: u32,
     pub message_size: u32,
 }
 
+#[cfg_attr(feature = "serdex", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UniqueIdListing {
     pub message_id: u32,
     pub message_uid: String,
 }
 
+#[cfg_attr(feature = "serdex", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LanguageListing {
     pub tag: String, // TODO: see RFC5646
     pub description: String,
 }
 
+#[cfg_attr(feature = "serdex", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Capability {
     // -- RFC2449 --
@@ -160,6 +171,7 @@ impl ToString for Capability {
     }
 }
 
+#[cfg_attr(feature = "serdex", derive(Serialize, Deserialize))]
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ExpirePolicy {
     Never,
