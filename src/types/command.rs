@@ -1,12 +1,9 @@
-#[derive(Clone)]
-pub enum State {
-    Authorization,
-    Transaction,
-    Update,
-}
+#[cfg(feature = "serdex")]
+use serde::{Deserialize, Serialize};
 
 // 9. POP3 Command Summary
-#[derive(Clone, Debug)]
+#[cfg_attr(feature = "serdex", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub enum Command {
     // Minimal POP3 Commands:
     // -- AUTHORIZATION state --
@@ -17,9 +14,11 @@ pub enum Command {
     // -- TRANSACTION state --
     /// STAT
     Stat,
-    /// LIST [msg]
+    /// LIST
+    ListAll,
+    /// LIST msg
     List {
-        msg: Option<u32>,
+        msg: u32,
     },
     /// RETR msg
     Retr {
@@ -50,9 +49,11 @@ pub enum Command {
         msg: u32,
         n: u32,
     },
-    /// UIDL [msg]
+    /// UIDL
+    UidlAll,
+    /// UIDL msg
     Uidl {
-        msg: Option<u32>,
+        msg: u32,
     },
 
     // RFC2449 (POP3 Extension Mechanism):
@@ -63,15 +64,22 @@ pub enum Command {
     /// STLS
     Stls,
     // RFC5034 (POP3 SASL Authentication Mechanism)
-    Auth {
-        mechanism: String,
-        initial_response: Option<String>,
-    },
     // TODO: Where is "AUTH\r\n" (without mechanism) defined?
     // rfc1939? no.
     // rfc1734? yes, but mechanism is required due to formal syntax and obsoleted.
     // rfc5034? yes, but mechanism is required due to formal syntax.
-    AuthList,
+    AuthAll,
+    Auth {
+        mechanism: String,
+        initial_response: Option<String>,
+    },
+
+    // RFC6856
+    Utf8,
+    LangAll,
+    Lang {
+        lang_or_wild: Language,
+    },
 }
 
 impl Command {
@@ -80,6 +88,7 @@ impl Command {
             Command::User(_) => "USER",
             Command::Pass(_) => "PASS",
             Command::Stat => "STAT",
+            Command::ListAll => "LISTALL",
             Command::List { .. } => "LIST",
             Command::Retr { .. } => "RETR",
             Command::Dele { .. } => "DELE",
@@ -88,11 +97,15 @@ impl Command {
             Command::Quit => "QUIT",
             Command::Apop { .. } => "APOP",
             Command::Top { .. } => "TOP",
+            Command::UidlAll => "UIDLALL",
             Command::Uidl { .. } => "UIDL",
             Command::Capa => "CAPA",
             Command::Stls => "STLS",
+            Command::AuthAll => "AUTHALL",
             Command::Auth { .. } => "AUTH",
-            Command::AuthList => "AUTHLIST",
+            Command::Utf8 => "UTF8",
+            Command::LangAll => "LANGALL",
+            Command::Lang { .. } => "LANG",
         }
     }
 
@@ -101,10 +114,8 @@ impl Command {
             Command::User(user) => format!("USER {}\r\n", user).into_bytes(),
             Command::Pass(pass) => format!("PASS {}\r\n", pass).into_bytes(),
             Command::Stat => b"STAT\r\n".to_vec(),
-            Command::List { msg } => match msg {
-                None => b"LIST\r\n".to_vec(),
-                Some(msg) => format!("LIST {}\r\n", msg).into_bytes(),
-            },
+            Command::ListAll => b"LIST\r\n".to_vec(),
+            Command::List { msg } => format!("LIST {}\r\n", msg).into_bytes(),
             Command::Retr { msg } => format!("RETR {}\r\n", msg).into_bytes(),
             Command::Dele { msg } => format!("DELE {}\r\n", msg).into_bytes(),
             Command::Noop => b"NOOP\r\n".to_vec(),
@@ -112,12 +123,11 @@ impl Command {
             Command::Quit => b"QUIT\r\n".to_vec(),
             Command::Apop { name, digest } => format!("APOP {} {}\r\n", name, digest).into_bytes(),
             Command::Top { msg, n } => format!("TOP {} {}\r\n", msg, n).into_bytes(),
-            Command::Uidl { msg } => match msg {
-                None => b"UIDL\r\n".to_vec(),
-                Some(msg) => format!("UIDL {}\r\n", msg).into_bytes(),
-            },
+            Command::UidlAll => b"UIDL\r\n".to_vec(),
+            Command::Uidl { msg } => format!("UIDL {}\r\n", msg).into_bytes(),
             Command::Capa => b"CAPA\r\n".to_vec(),
             Command::Stls => b"STLS\r\n".to_vec(),
+            Command::AuthAll => b"AUTH\r\n".to_vec(),
             Command::Auth {
                 mechanism,
                 initial_response,
@@ -127,7 +137,27 @@ impl Command {
                 }
                 None => format!("AUTH {}\r\n", mechanism).into_bytes(),
             },
-            Command::AuthList => b"AUTH\r\n".to_vec(),
+            Command::Utf8 => b"UTF8\r\n".to_vec(),
+            Command::LangAll => b"LANG\r\n".to_vec(),
+            Command::Lang { lang_or_wild } => {
+                format!("LANG {}\r\n", lang_or_wild.to_string()).into_bytes()
+            }
+        }
+    }
+}
+
+#[cfg_attr(feature = "serdex", derive(Serialize, Deserialize))]
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+pub enum Language {
+    Lang(String),
+    Wild,
+}
+
+impl ToString for Language {
+    fn to_string(&self) -> String {
+        match self {
+            Language::Lang(lang) => lang.clone(),
+            Language::Wild => "*".to_owned(),
         }
     }
 }
@@ -144,8 +174,8 @@ mod test {
             b"PASS password\r\n"
         );
         assert_eq!(Command::Stat.serialize(), b"STAT\r\n");
-        assert_eq!(Command::List { msg: None }.serialize(), b"LIST\r\n");
-        assert_eq!(Command::List { msg: Some(1) }.serialize(), b"LIST 1\r\n");
+        assert_eq!(Command::ListAll.serialize(), b"LIST\r\n");
+        assert_eq!(Command::List { msg: 1 }.serialize(), b"LIST 1\r\n");
         assert_eq!(Command::Retr { msg: 1 }.serialize(), b"RETR 1\r\n");
         assert_eq!(Command::Dele { msg: 1 }.serialize(), b"DELE 1\r\n");
         assert_eq!(Command::Noop.serialize(), b"NOOP\r\n");
@@ -160,8 +190,8 @@ mod test {
             b"APOP alice aabbccddeeff\r\n"
         );
         assert_eq!(Command::Top { msg: 1, n: 5 }.serialize(), b"TOP 1 5\r\n");
-        assert_eq!(Command::Uidl { msg: None }.serialize(), b"UIDL\r\n");
-        assert_eq!(Command::Uidl { msg: Some(1) }.serialize(), b"UIDL 1\r\n");
+        assert_eq!(Command::UidlAll.serialize(), b"UIDL\r\n");
+        assert_eq!(Command::Uidl { msg: 1 }.serialize(), b"UIDL 1\r\n");
         assert_eq!(Command::Capa.serialize(), b"CAPA\r\n");
         assert_eq!(Command::Stls.serialize(), b"STLS\r\n");
         assert_eq!(
@@ -180,6 +210,6 @@ mod test {
             .serialize(),
             b"AUTH PLAIN XXX\r\n"
         );
-        assert_eq!(Command::AuthList.serialize(), b"AUTH\r\n");
+        assert_eq!(Command::AuthAll.serialize(), b"AUTH\r\n");
     }
 }
