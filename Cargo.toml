@@ -1,6 +1,6 @@
 [package]
 name = "pop3-codec"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Damian Poddebniak <poddebniak@fh-muenster.de>"]
 edition = "2018"
 
