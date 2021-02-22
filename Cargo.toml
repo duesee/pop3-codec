@@ -12,8 +12,8 @@ serdex  = ["serde"]
 utils   = ["md5"]
 
 [dependencies]
-abnf-core = "*"
-nom       = "5"
+abnf-core = "0.4"
+nom       = "6"
 
 # Optional
 md5   = { version = "*", optional = true }

@@ -12,7 +12,7 @@ use nom::{
     character::streaming::{line_ending, not_line_ending},
     combinator::{map, map_res, opt, value},
     error::ErrorKind,
-    multi::{many0, separated_nonempty_list},
+    multi::{many0, separated_list1},
     sequence::{delimited, preceded, separated_pair, terminated, tuple},
     IResult,
 };
@@ -29,11 +29,7 @@ use std::str::from_utf8;
 
 /// resp-code = "[" resp-level *("/" resp-level) "]"
 pub(crate) fn resp_code(input: &[u8]) -> IResult<&[u8], Vec<&str>> {
-    delimited(
-        tag("["),
-        separated_nonempty_list(tag("/"), resp_level),
-        tag("]"),
-    )(input)
+    delimited(tag("["), separated_list1(tag("/"), resp_level), tag("]"))(input)
 }
 
 /// resp-level = 1*rchar
@@ -104,14 +100,14 @@ where
                 rem
             };
 
-            let parser = tuple((parser, line_ending));
+            let mut parser = tuple((parser, line_ending));
 
             let (rem, (something, _)) = parser(rem)?;
 
             Ok((rem, Response::Ok(something)))
         }
         Status::Err => {
-            let parser = tuple((head, line_ending));
+            let mut parser = tuple((head, line_ending));
 
             let (rem, (head, _)) = parser(rem)?;
 
@@ -121,7 +117,7 @@ where
 }
 
 pub(crate) fn head(input: &[u8]) -> IResult<&[u8], SingleLine> {
-    let parser = opt(preceded(SP, text));
+    let mut parser = opt(preceded(SP, text));
 
     let (rem, maybe_text) = parser(input)?;
 
@@ -140,7 +136,7 @@ pub(crate) fn head(input: &[u8]) -> IResult<&[u8], SingleLine> {
 }
 
 pub(crate) fn drop_listing(input: &[u8]) -> IResult<&[u8], DropListing> {
-    let parser = separated_pair(number, SP, number);
+    let mut parser = separated_pair(number, SP, number);
 
     let (rem, (message_count, maildrop_size)) = parser(input)?;
 
@@ -154,7 +150,7 @@ pub(crate) fn drop_listing(input: &[u8]) -> IResult<&[u8], DropListing> {
 }
 
 pub(crate) fn scan_listing(input: &[u8]) -> IResult<&[u8], ScanListing> {
-    let parser = separated_pair(number, SP, number);
+    let mut parser = separated_pair(number, SP, number);
 
     let (rem, (message_id, message_size)) = parser(input)?;
 
@@ -181,7 +177,7 @@ pub(crate) fn unique_id_listing(input: &[u8]) -> IResult<&[u8], UniqueIdListing>
         })(input)
     }
 
-    let parser = separated_pair(number, SP, unique_id);
+    let mut parser = separated_pair(number, SP, unique_id);
 
     let (rem, (message_id, message_uid)) = parser(input)?;
 
@@ -195,7 +191,7 @@ pub(crate) fn unique_id_listing(input: &[u8]) -> IResult<&[u8], UniqueIdListing>
 }
 
 pub(crate) fn language_listing(input: &[u8]) -> IResult<&[u8], LanguageListing> {
-    let parser = separated_pair(language, SP, map_res(not_line_ending, from_utf8));
+    let mut parser = separated_pair(language, SP, map_res(not_line_ending, from_utf8));
 
     let (rem, (tag, description)) = parser(input)?;
 
@@ -232,7 +228,7 @@ fn status(input: &[u8]) -> IResult<&[u8], Status> {
 /// * *CHAR --> <read until \r\n excluding NULL>
 /// *schar also matches empty sequence...
 fn text(input: &[u8]) -> IResult<&[u8], (Vec<&str>, &str)> {
-    let parser = alt((
+    let mut parser = alt((
         map(
             tuple((
                 terminated(resp_code, SP),
@@ -280,7 +276,7 @@ where
 
     match single {
         Response::Ok(head) => {
-            let parser = tuple((
+            let mut parser = tuple((
                 many0(terminated(parser, line_ending)),
                 tuple((tag("."), line_ending)),
             ));
@@ -308,13 +304,16 @@ where
 // Note: Do not consume CRLF, because it is done in higher-level multi-line parser
 pub(crate) fn dot_stuffed(input: &[u8]) -> IResult<&[u8], String> {
     // Read until \r\n ...
-    let line = map_res(not_line_ending, from_utf8);
+    let mut parser = map_res(not_line_ending, from_utf8);
 
-    let (rem, line) = line(input)?;
+    let (rem, line) = parser(input)?;
 
     // ... and accept every line, which is not "."
     if line == "." {
-        Err(nom::Err::Error((rem, ErrorKind::IsNot)))
+        Err(nom::Err::Error(nom::error::Error::new(
+            input,
+            ErrorKind::IsNot,
+        )))
     } else {
         Ok((rem, line.to_owned()))
     }
@@ -326,7 +325,7 @@ pub(crate) fn dot_stuffed(input: &[u8]) -> IResult<&[u8], String> {
 ///
 /// Note: 512 octets maximum
 pub(crate) fn capability(input: &[u8]) -> IResult<&[u8], Capability> {
-    let parser = alt((
+    let mut parser = alt((
         value(Capability::Top, tuple((tag_no_case("TOP"), line_ending))),
         value(Capability::User, tuple((tag_no_case("USER"), line_ending))),
         map(

@@ -13,7 +13,7 @@ use nom::{
 use std::str::from_utf8;
 
 pub(crate) fn user(input: &[u8]) -> IResult<&[u8], Command> {
-    let parser = tuple((
+    let mut parser = tuple((
         tag_no_case("USER"),
         tag(" "),
         map_res(not_line_ending, from_utf8),
@@ -25,7 +25,7 @@ pub(crate) fn user(input: &[u8]) -> IResult<&[u8], Command> {
 }
 
 pub(crate) fn pass(input: &[u8]) -> IResult<&[u8], Command> {
-    let parser = tuple((
+    let mut parser = tuple((
         tag_no_case("PASS"),
         tag(" "),
         map_res(not_line_ending, from_utf8),
@@ -41,7 +41,7 @@ pub(crate) fn stat(input: &[u8]) -> IResult<&[u8], Command> {
 }
 
 pub(crate) fn list(input: &[u8]) -> IResult<&[u8], Command> {
-    let parser = tuple((
+    let mut parser = tuple((
         tag_no_case("LIST"),
         opt(map(tuple((tag(" "), number)), |(_, msg)| msg)),
     ));
@@ -58,7 +58,7 @@ pub(crate) fn list(input: &[u8]) -> IResult<&[u8], Command> {
 }
 
 pub(crate) fn retr(input: &[u8]) -> IResult<&[u8], Command> {
-    let parser = tuple((tag_no_case("RETR"), tag(" "), number));
+    let mut parser = tuple((tag_no_case("RETR"), tag(" "), number));
 
     let (remaining, (_, _, msg)) = parser(input)?;
 
@@ -66,7 +66,7 @@ pub(crate) fn retr(input: &[u8]) -> IResult<&[u8], Command> {
 }
 
 pub(crate) fn dele(input: &[u8]) -> IResult<&[u8], Command> {
-    let parser = tuple((tag_no_case("DELE"), tag(" "), number));
+    let mut parser = tuple((tag_no_case("DELE"), tag(" "), number));
 
     let (remaining, (_, _, msg)) = parser(input)?;
 
@@ -86,7 +86,7 @@ pub(crate) fn quit(input: &[u8]) -> IResult<&[u8], Command> {
 }
 
 pub(crate) fn apop(input: &[u8]) -> IResult<&[u8], Command> {
-    let parser = tuple((
+    let mut parser = tuple((
         tag_no_case("APOP"),
         tag(" "),
         map_res(take_while(|byte| byte != b' '), from_utf8),
@@ -106,7 +106,7 @@ pub(crate) fn apop(input: &[u8]) -> IResult<&[u8], Command> {
 }
 
 pub(crate) fn top(input: &[u8]) -> IResult<&[u8], Command> {
-    let parser = tuple((tag_no_case("TOP"), tag(" "), number, tag(" "), number));
+    let mut parser = tuple((tag_no_case("TOP"), tag(" "), number, tag(" "), number));
 
     let (remaining, (_, _, msg, _, n)) = parser(input)?;
 
@@ -114,7 +114,7 @@ pub(crate) fn top(input: &[u8]) -> IResult<&[u8], Command> {
 }
 
 pub(crate) fn uidl(input: &[u8]) -> IResult<&[u8], Command> {
-    let parser = preceded(tag_no_case("UIDL"), opt(preceded(tag(" "), number)));
+    let mut parser = preceded(tag_no_case("UIDL"), opt(preceded(tag(" "), number)));
 
     let (remaining, maybe_msg) = parser(input)?;
 
@@ -136,7 +136,7 @@ pub(crate) fn stls(input: &[u8]) -> IResult<&[u8], Command> {
 }
 
 pub(crate) fn auth(input: &[u8]) -> IResult<&[u8], Command> {
-    let parser = alt((
+    let mut parser = alt((
         map(
             tuple((
                 tag_no_case(b"AUTH"),
@@ -168,7 +168,7 @@ pub(crate) fn utf8(input: &[u8]) -> IResult<&[u8], Command> {
 }
 
 pub(crate) fn lang(input: &[u8]) -> IResult<&[u8], Command> {
-    let parser = preceded(tag_no_case("LANG"), opt(preceded(tag(" "), lang_or_wild)));
+    let mut parser = preceded(tag_no_case("LANG"), opt(preceded(tag(" "), lang_or_wild)));
 
     let (remaining, maybe_lang) = parser(input)?;
 
@@ -192,7 +192,7 @@ fn is_auth_char(i: u8) -> bool {
 }
 
 fn base64(input: &[u8]) -> IResult<&[u8], &str> {
-    let parser = map_res(
+    let mut parser = map_res(
         recognize(tuple((
             take_while(is_base64_char),
             opt(alt((tag("=="), tag("=")))),

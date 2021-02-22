@@ -34,7 +34,7 @@ pub fn greeting(input: &[u8]) -> IResult<&[u8], Greeting> {
     // * [resp-code] -> [SP resp-code]
     //
     // TODO: 512 octets maximum (?)
-    let parser = tuple((
+    let mut parser = tuple((
         tag_no_case("+OK"),
         opt(preceded(SP, resp_code)),
         opt(preceded(
