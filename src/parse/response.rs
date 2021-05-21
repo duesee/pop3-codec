@@ -427,8 +427,10 @@ fn is_cchar(byte: u8) -> bool {
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::parse::greeting;
-    use crate::types::response::{Greeting, Response};
+    use crate::{
+        parse::greeting,
+        types::response::{Greeting, Response},
+    };
 
     #[test]
     fn test_greetings() {
