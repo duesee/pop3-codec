@@ -1,7 +1,5 @@
-use crate::{
-    parse::{language, number},
-    types::command::{Command, Language},
-};
+use std::str::from_utf8;
+
 use nom::{
     branch::alt,
     bytes::streaming::{tag, tag_no_case, take_while, take_while1},
@@ -10,7 +8,11 @@ use nom::{
     sequence::{preceded, tuple},
     IResult,
 };
-use std::str::from_utf8;
+
+use crate::{
+    parse::{language, number},
+    types::command::{Command, Language},
+};
 
 pub(crate) fn user(input: &[u8]) -> IResult<&[u8], Command> {
     let mut parser = tuple((

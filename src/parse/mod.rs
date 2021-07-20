@@ -1,13 +1,5 @@
-use crate::{
-    parse::{command::*, response::*},
-    types::{
-        command::Command,
-        response::{
-            Capability, DropListing, Greeting, LanguageListing, MultiLine, Response, ScanListing,
-            SingleLine, UniqueIdListing,
-        },
-    },
-};
+use std::str::from_utf8;
+
 use abnf_core::streaming::{is_ALPHA, is_VCHAR, SP};
 use nom::{
     branch::alt,
@@ -21,7 +13,17 @@ use nom::{
     sequence::{preceded, terminated, tuple},
     IResult,
 };
-use std::str::from_utf8;
+
+use crate::{
+    parse::{command::*, response::*},
+    types::{
+        command::Command,
+        response::{
+            Capability, DropListing, Greeting, LanguageListing, MultiLine, Response, ScanListing,
+            SingleLine, UniqueIdListing,
+        },
+    },
+};
 
 mod command;
 mod response;
