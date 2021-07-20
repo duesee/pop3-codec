@@ -1,6 +1,7 @@
+use std::fmt::Debug;
+
 #[cfg(feature = "serdex")]
 use serde::{Deserialize, Serialize};
-use std::fmt::Debug;
 
 // -- Greeting --
 

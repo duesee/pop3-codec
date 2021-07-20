@@ -1,10 +1,5 @@
-use crate::{
-    parse::{language, number, param},
-    types::response::{
-        Capability, DropListing, ExpirePolicy, LanguageListing, MultiLine, Response, ScanListing,
-        SingleLine, UniqueIdListing,
-    },
-};
+use std::str::from_utf8;
+
 use abnf_core::streaming::SP;
 use nom::{
     branch::alt,
@@ -16,7 +11,14 @@ use nom::{
     sequence::{delimited, preceded, separated_pair, terminated, tuple},
     IResult,
 };
-use std::str::from_utf8;
+
+use crate::{
+    parse::{language, number, param},
+    types::response::{
+        Capability, DropListing, ExpirePolicy, LanguageListing, MultiLine, Response, ScanListing,
+        SingleLine, UniqueIdListing,
+    },
+};
 
 // ----- # Response -----
 
