@@ -1,3 +1,6 @@
+![CI](https://github.com/duesee/pop3-codec/actions/workflows/ci.yml/badge.svg)
+![Scheduled](https://github.com/duesee/pop3-codec/actions/workflows/scheduled.yml/badge.svg)
+
 # POP3 Protocol
 
 This crate provides types and parsers for POP3 commands. Responses are not implemented yet.
