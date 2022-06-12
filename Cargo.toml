@@ -2,7 +2,7 @@
 name = "pop3-codec"
 description = "Low-level POP3 Parser and Serializer"
 keywords = ["email", "pop3", "parser", "codec"]
-version = "0.2.0"
+version = "0.3.0"
 authors = ["Damian Poddebniak <poddebniak@fh-muenster.de>"]
 repository = "https://github.com/duesee/pop3-codec"
 license = "MIT OR Apache-2.0"
@@ -16,8 +16,8 @@ serdex  = ["serde"]
 utils   = ["md5"]
 
 [dependencies]
-abnf-core = "0.4"
-nom       = "6"
+abnf-core = "0.5"
+nom       = "7"
 
 # Optional
 md5   = { version = "0.7", optional = true }
