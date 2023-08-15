@@ -3,10 +3,6 @@
 [![Coverage](https://coveralls.io/repos/github/duesee/pop3-codec/badge.svg?branch=main)](https://coveralls.io/github/duesee/pop3-codec?branch=main)
 [![Documentation](https://docs.rs/pop3-codec/badge.svg)](https://docs.rs/pop3-codec)
 
-[![CI](https://github.com/duesee/pop3-codec/actions/workflows/ci.yml/badge.svg)](https://github.com/duesee/pop3-codec/actions/workflows/ci.yml)
-[![Scheduled](https://github.com/duesee/pop3-codec/actions/workflows/scheduled.yml/badge.svg)](https://github.com/duesee/pop3-codec/actions/workflows/scheduled.yml)
-[![docs](https://docs.rs/pop3-codec/badge.svg)](https://docs.rs/pop3-codec)
-
 # POP3 Protocol
 
 This crate provides types and parsers for POP3 commands. Responses are not implemented yet.
