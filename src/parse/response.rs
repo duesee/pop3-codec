@@ -52,7 +52,6 @@ pub(crate) fn is_rchar(byte: u8) -> bool {
 ///
 /// Correction:
 /// * %x21 --> %x20 // include SPACE?
-///
 pub(crate) fn is_gchar(byte: u8) -> bool {
     matches!(byte, 0x20..=0x3B | 0x3D..=0x7F)
 }
@@ -63,7 +62,6 @@ pub(crate) fn is_gchar(byte: u8) -> bool {
 ///
 /// Correction:
 /// * *VCHAR must not contain ">"
-///
 pub(crate) fn timestamp(input: &[u8]) -> IResult<&[u8], &str> {
     delimited(
         tag("<"),
@@ -254,7 +252,6 @@ fn text(input: &[u8]) -> IResult<&[u8], (Vec<&str>, &str)> {
 ///
 /// Corrections:
 /// * %x21 --> %x20 // include SPACE
-///
 fn is_schar(byte: u8) -> bool {
     matches!(byte, 0x20..=0x5A | 0x5C..=0x7F)
 }
